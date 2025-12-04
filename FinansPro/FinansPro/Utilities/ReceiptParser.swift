@@ -82,10 +82,26 @@ class ReceiptParser {
         var amounts: [Double] = []
 
         for line in lines {
-            // "TOPLAM", "TOTAL", "TUTAR" gibi kelimeleri ara
-            if line.lowercased().contains("toplam") ||
-               line.lowercased().contains("total") ||
-               line.lowercased().contains("ödenecek") {
+            let lowercasedLine = line.lowercased()
+
+            // NAKİT, PARA ÜSTÜ gibi kelimeleri içeren satırları ATLA
+            if lowercasedLine.contains("nakit") ||
+               lowercasedLine.contains("nakıt") ||
+               lowercasedLine.contains("cash") ||
+               lowercasedLine.contains("para üstü") ||
+               lowercasedLine.contains("para ustu") ||
+               lowercasedLine.contains("change") ||
+               lowercasedLine.contains("verilen") {
+                continue  // Bu satırı atla
+            }
+
+            // "TOPLAM", "TOTAL", "ÖDENECEK", "TUTAR" gibi kelimeleri ara
+            if lowercasedLine.contains("toplam") ||
+               lowercasedLine.contains("total") ||
+               lowercasedLine.contains("ödenecek") ||
+               lowercasedLine.contains("odenecek") ||
+               lowercasedLine.contains("tutar") ||
+               lowercasedLine.contains("amount") {
 
                 // Bu satırdan tutarları çıkar
                 let lineAmounts = extractAmounts(from: line)
@@ -93,9 +109,22 @@ class ReceiptParser {
             }
         }
 
-        // Toplam bulunamadıysa, tüm satırlardan en büyük tutarı al
+        // Toplam bulunamadıysa, tüm satırlardan en büyük tutarı al (nakit/para üstü hariç)
         if amounts.isEmpty {
             for line in lines {
+                let lowercasedLine = line.lowercased()
+
+                // NAKİT, PARA ÜSTÜ içeren satırları atla
+                if lowercasedLine.contains("nakit") ||
+                   lowercasedLine.contains("nakıt") ||
+                   lowercasedLine.contains("cash") ||
+                   lowercasedLine.contains("para üstü") ||
+                   lowercasedLine.contains("para ustu") ||
+                   lowercasedLine.contains("change") ||
+                   lowercasedLine.contains("verilen") {
+                    continue
+                }
+
                 let lineAmounts = extractAmounts(from: line)
                 amounts.append(contentsOf: lineAmounts)
             }
@@ -224,59 +253,136 @@ class ReceiptParser {
         return items
     }
 
-    /// Kategori öner (ML tabanlı)
+    /// Kategori öner (ML tabanlı + Geliştirilmiş keyword kontrolü)
     private func suggestCategory(merchantName: String?, text: String) -> TransactionCategory {
         let fullText = (merchantName ?? "") + " " + text
-
-        // ML tahminini kullan
-        let prediction = MLCategoryPredictor.shared.predictCategory(from: fullText, merchantName: merchantName)
-
-        // Yüksek güvenle tahmin varsa onu kullan
-        if prediction.confidence > 0.6 {
-            return prediction.category
-        }
-
-        // Düşük güven, fallback olarak basit keyword kontrolü
         let lowercased = fullText.lowercased()
 
-        // Yemek
-        if lowercased.contains("market") || lowercased.contains("migros") ||
-           lowercased.contains("bim") || lowercased.contains("a101") ||
-           lowercased.contains("şok") || lowercased.contains("carrefour") ||
-           lowercased.contains("restaurant") || lowercased.contains("cafe") ||
-           lowercased.contains("yemek") {
-            return .food
+        // ÖNCELİKLE keyword tabanlı kontrol yap (daha güvenilir)
+        // Marketler ve Süpermarketler -> FOOD
+        let supermarkets = [
+            "migros", "bim", "a101", "şok", "sok", "carrefour", "carrefoursa",
+            "metro", "makro", "macro", "kiler", "kim market", "tansas",
+            "file", "onur", "yeni onur", "dia", "ekomini", "ucuzamı", "ucuzami"
+        ]
+
+        for market in supermarkets {
+            if lowercased.contains(market) {
+                return .food
+            }
         }
 
-        // Ulaşım
-        if lowercased.contains("benzin") || lowercased.contains("shell") ||
-           lowercased.contains("opet") || lowercased.contains("bp") ||
-           lowercased.contains("otopark") || lowercased.contains("taksi") {
+        // Restoranlar, Kafeler, Fast Food -> FOOD
+        let restaurants = [
+            "restaurant", "restoran", "cafe", "kafe", "kahve", "coffee",
+            "mcdonald", "burger king", "kfc", "domino", "pizza",
+            "starbucks", "kahve dünyası", "kahve dunyasi", "gloria jean",
+            "popeyes", "sbarro", "tavuk dünyası", "tavuk dunyasi",
+            "yemek", "food", "lokanta", "aşevi", "asevi", "kebap", "döner",
+            "bakery", "fırın", "pastane", "patisserie"
+        ]
+
+        for restaurant in restaurants {
+            if lowercased.contains(restaurant) {
+                return .food
+            }
+        }
+
+        // Yakıt İstasyonları -> TRANSPORT
+        let fuelStations = [
+            "opet", "shell", "bp", "petrol ofisi", "po", "total",
+            "aytemiz", "turkpetrol", "moil", "benzin", "akaryakıt",
+            "lpg", "motorin", "fuel", "gas station"
+        ]
+
+        for station in fuelStations {
+            if lowercased.contains(station) {
+                return .transport
+            }
+        }
+
+        // Ulaşım -> TRANSPORT
+        if lowercased.contains("otopark") || lowercased.contains("parking") ||
+           lowercased.contains("taksi") || lowercased.contains("taxi") ||
+           lowercased.contains("uber") || lowercased.contains("bitaksi") ||
+           lowercased.contains("otobüs") || lowercased.contains("otobus") ||
+           lowercased.contains("metro") || lowercased.contains("tramvay") ||
+           lowercased.contains("dolmuş") || lowercased.contains("dolmus") ||
+           lowercased.contains("ulaşım") || lowercased.contains("ulasim") {
             return .transport
         }
 
-        // Faturalar
-        if lowercased.contains("elektrik") || lowercased.contains("su") ||
-           lowercased.contains("doğalgaz") || lowercased.contains("internet") ||
-           lowercased.contains("telefon") || lowercased.contains("fatura") {
+        // Faturalar -> BILLS
+        if lowercased.contains("elektrik") || lowercased.contains("electric") ||
+           lowercased.contains("su") || lowercased.contains("water") ||
+           lowercased.contains("doğalgaz") || lowercased.contains("dogalgaz") ||
+           lowercased.contains("internet") || lowercased.contains("ttnet") ||
+           lowercased.contains("superonline") || lowercased.contains("türk telekom") ||
+           lowercased.contains("turk telekom") || lowercased.contains("vodafone") ||
+           lowercased.contains("turkcell") || lowercased.contains("avea") ||
+           lowercased.contains("fatura") || lowercased.contains("invoice") ||
+           lowercased.contains("bill") || lowercased.contains("ödeme") {
             return .bills
         }
 
-        // Sağlık
-        if lowercased.contains("eczane") || lowercased.contains("pharmacy") ||
-           lowercased.contains("hastane") || lowercased.contains("hospital") ||
-           lowercased.contains("klinik") || lowercased.contains("doktor") {
-            return .health
+        // Eczane ve Sağlık -> HEALTH
+        let healthPlaces = [
+            "eczane", "pharmacy", "eczacı", "eczaci", "sağlık",
+            "saglik", "hastane", "hospital", "klinik", "clinic",
+            "doktor", "doctor", "poliklinik", "muayenehane",
+            "tıbbi", "tibbi", "medikal", "medical"
+        ]
+
+        for place in healthPlaces {
+            if lowercased.contains(place) {
+                return .health
+            }
         }
 
-        // Eğlence
+        // Eğlence -> ENTERTAINMENT
         if lowercased.contains("sinema") || lowercased.contains("cinema") ||
            lowercased.contains("bilet") || lowercased.contains("ticket") ||
-           lowercased.contains("konser") {
+           lowercased.contains("konser") || lowercased.contains("concert") ||
+           lowercased.contains("tiyatro") || lowercased.contains("theater") ||
+           lowercased.contains("müze") || lowercased.contains("muze") ||
+           lowercased.contains("eğlence") || lowercased.contains("eglence") {
             return .entertainment
         }
 
-        // ML tahmini döndür (fallback olarak)
+        // Giyim -> SHOPPING
+        let clothingStores = [
+            "zara", "h&m", "mango", "koton", "lcwaikiki", "defacto",
+            "pull&bear", "bershka", "stradivarius", "mavi", "nike",
+            "adidas", "puma", "colin's", "watsons", "gratis"
+        ]
+
+        for store in clothingStores {
+            if lowercased.contains(store) {
+                return .shopping
+            }
+        }
+
+        // Elektronik -> SHOPPING
+        let electronicStores = [
+            "teknosa", "vatan", "media markt", "mediamarkt",
+            "gold", "d&r", "apple", "samsung", "bimeks"
+        ]
+
+        for store in electronicStores {
+            if lowercased.contains(store) {
+                return .shopping
+            }
+        }
+
+        // Keyword kontrolden sonra ML tahminini kullan
+        let prediction = MLCategoryPredictor.shared.predictCategory(from: fullText, merchantName: merchantName)
+
+        // Orta-yüksek güvenle tahmin varsa onu kullan
+        if prediction.confidence > 0.5 {
+            return prediction.category
+        }
+
+        // Hiçbir eşleşme yoksa, ML tahmini döndür veya varsayılan kategori
         return prediction.category
     }
 

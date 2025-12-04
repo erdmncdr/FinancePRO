@@ -224,7 +224,9 @@ struct BatchReceiptScannerView: View {
                     switch result {
                     case .success(let data):
                         if let data = data, let image = UIImage(data: data) {
-                            selectedItems.append(BatchReceiptItem(image: image))
+                            // Görsel yönlendirmesini düzelt
+                            let correctedImage = image.fixedOrientation()
+                            selectedItems.append(BatchReceiptItem(image: correctedImage))
                         }
                     case .failure:
                         break
