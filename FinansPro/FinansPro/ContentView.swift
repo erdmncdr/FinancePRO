@@ -66,11 +66,11 @@ struct ContentView: View {
                     }
                     .tabViewStyle(.page(indexDisplayMode: .never))
 
-                    // Custom Bottom Navigation
+                    // Custom Bottom Navigation - Şeffaf ve Kompakt
                     CustomTabBar(selectedTab: $selectedTab)
-                        .padding(.horizontal)
-                        .padding(.bottom, 10)
-                        .padding(.top, 5)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 8)
+                        .padding(.top, 2)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -144,13 +144,13 @@ struct ContentView: View {
     }
 }
 
-// Özel Tab Bar - Premium Liquid Glass
+// Özel Tab Bar - Şeffaf ve Minimalist
 struct CustomTabBar: View {
     @Binding var selectedTab: ContentView.Tab
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 4) {
             ForEach(ContentView.Tab.allCases, id: \.self) { tab in
                 TabBarButton(
                     tab: tab,
@@ -163,68 +163,27 @@ struct CustomTabBar: View {
                 }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 8)
         .background(
-            ZStack {
-                if colorScheme == .dark {
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 30)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(0.15),
-                                            Color.white.opacity(0.05)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
+            // Şeffaf blur efekti - arkaplan yok, sadece ultraince blur
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.ultraThinMaterial)
+                .opacity(0.7)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(
+                            colorScheme == .dark
+                            ? Color.white.opacity(0.1)
+                            : Color.black.opacity(0.05),
+                            lineWidth: 0.5
                         )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 30)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(0.3),
-                                            Color.white.opacity(0.1)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1.5
-                                )
-                        )
-                        .shadow(
-                            color: Color.black.opacity(0.5),
-                            radius: 20,
-                            x: 0,
-                            y: 10
-                        )
-                        .drawingGroup()
-                } else {
-                    // Light mode: higher contrast, solid-like background
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(Color.white.opacity(0.95))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 30)
-                                .stroke(Color.black.opacity(0.08), lineWidth: 1)
-                        )
-                        .shadow(
-                            color: Color.black.opacity(0.08),
-                            radius: 20,
-                            x: 0,
-                            y: 10
-                        )
-                }
-            }
+                )
         )
     }
 }
 
-// Tab Bar butonu
+// Tab Bar butonu - Kompakt ve Minimalist
 struct TabBarButton: View {
     let tab: ContentView.Tab
     let isSelected: Bool
@@ -233,34 +192,32 @@ struct TabBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 ZStack {
-                    // Arka plan - basit fade animasyonu
-                    RoundedRectangle(cornerRadius: 15)
+                    // Arka plan - daha küçük ve hafif
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(tab.gradient)
-                        .frame(width: 50, height: 50)
+                        .frame(width: 42, height: 42)
                         .opacity(isSelected ? 1.0 : 0.0)
-                        .scaleEffect(isSelected ? 1.0 : 0.8)
-                        .shadow(color: Color.black.opacity(isSelected ? 0.2 : 0), radius: 8, x: 0, y: 4)
+                        .scaleEffect(isSelected ? 1.0 : 0.85)
 
-                    // İkon
+                    // İkon - daha küçük
                     Image(systemName: tab.icon)
-                        .font(.system(size: 22, weight: isSelected ? .bold : .regular))
+                        .font(.system(size: 19, weight: isSelected ? .semibold : .regular))
                         .foregroundColor(
                             isSelected
                             ? .white
-                            : (colorScheme == .light ? .primary : .secondary)
+                            : (colorScheme == .light ? .primary.opacity(0.6) : .secondary.opacity(0.7))
                         )
                 }
 
-                // Label
+                // Label - daha küçük
                 Text(tab.rawValue)
-                    .font(Theme.caption)
-                    .fontWeight(isSelected ? .semibold : .regular)
+                    .font(.system(size: 10, weight: isSelected ? .medium : .regular))
                     .foregroundColor(
                         isSelected
                         ? .primary
-                        : (colorScheme == .light ? .primary.opacity(0.9) : .secondary)
+                        : (colorScheme == .light ? .primary.opacity(0.6) : .secondary.opacity(0.7))
                     )
             }
             .frame(maxWidth: .infinity)
