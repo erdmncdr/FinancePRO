@@ -62,58 +62,96 @@ class PDFReceiptProcessor {
         return .success(fullText)
     }
 
-    /// PDF'in ilk sayfasını thumbnail olarak çıkarır
-    func generateThumbnail(from pdfURL: URL, size: CGSize = CGSize(width: 200, height: 200)) -> UIImage? {
+    /// PDF'in ilk sayfasını thumbnail olarak çıkarır (rotasyon düzeltmeli)
+    func generateThumbnail(from pdfURL: URL, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(url: pdfURL),
               let firstPage = pdfDocument.page(at: 0) else {
             return nil
         }
 
+        // PDF sayfasının rotasyonunu dikkate al
         let pageRect = firstPage.bounds(for: .mediaBox)
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let rotation = firstPage.rotation
+
+        // Rotation'a göre boyutları ayarla
+        var thumbnailSize = size
+        if rotation == 90 || rotation == 270 {
+            thumbnailSize = CGSize(width: size.height, height: size.width)
+        }
+
+        let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
 
         let thumbnail = renderer.image { context in
             UIColor.white.set()
-            context.fill(CGRect(origin: .zero, size: size))
+            context.fill(CGRect(origin: .zero, size: thumbnailSize))
 
-            context.cgContext.translateBy(x: 0, y: size.height)
+            // Context'i doğru şekilde ayarla
+            context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
             context.cgContext.scaleBy(x: 1.0, y: -1.0)
 
-            let scaleX = size.width / pageRect.width
-            let scaleY = size.height / pageRect.height
+            // Ölçekleme
+            let scaleX = thumbnailSize.width / pageRect.width
+            let scaleY = thumbnailSize.height / pageRect.height
             let scale = min(scaleX, scaleY)
 
+            // Merkezleme
+            let scaledWidth = pageRect.width * scale
+            let scaledHeight = pageRect.height * scale
+            let offsetX = (thumbnailSize.width - scaledWidth) / 2
+            let offsetY = (thumbnailSize.height - scaledHeight) / 2
+
+            context.cgContext.translateBy(x: offsetX, y: offsetY)
             context.cgContext.scaleBy(x: scale, y: scale)
 
+            // PDF sayfasını çiz
             firstPage.draw(with: .mediaBox, to: context.cgContext)
         }
 
         return thumbnail
     }
 
-    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır
-    func generateThumbnail(from pdfData: Data, size: CGSize = CGSize(width: 200, height: 200)) -> UIImage? {
+    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır (rotasyon düzeltmeli)
+    func generateThumbnail(from pdfData: Data, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(data: pdfData),
               let firstPage = pdfDocument.page(at: 0) else {
             return nil
         }
 
+        // PDF sayfasının rotasyonunu dikkate al
         let pageRect = firstPage.bounds(for: .mediaBox)
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let rotation = firstPage.rotation
+
+        // Rotation'a göre boyutları ayarla
+        var thumbnailSize = size
+        if rotation == 90 || rotation == 270 {
+            thumbnailSize = CGSize(width: size.height, height: size.width)
+        }
+
+        let renderer = UIGraphicsImageRenderer(size: thumbnailSize)
 
         let thumbnail = renderer.image { context in
             UIColor.white.set()
-            context.fill(CGRect(origin: .zero, size: size))
+            context.fill(CGRect(origin: .zero, size: thumbnailSize))
 
-            context.cgContext.translateBy(x: 0, y: size.height)
+            // Context'i doğru şekilde ayarla
+            context.cgContext.translateBy(x: 0, y: thumbnailSize.height)
             context.cgContext.scaleBy(x: 1.0, y: -1.0)
 
-            let scaleX = size.width / pageRect.width
-            let scaleY = size.height / pageRect.height
+            // Ölçekleme
+            let scaleX = thumbnailSize.width / pageRect.width
+            let scaleY = thumbnailSize.height / pageRect.height
             let scale = min(scaleX, scaleY)
 
+            // Merkezleme
+            let scaledWidth = pageRect.width * scale
+            let scaledHeight = pageRect.height * scale
+            let offsetX = (thumbnailSize.width - scaledWidth) / 2
+            let offsetY = (thumbnailSize.height - scaledHeight) / 2
+
+            context.cgContext.translateBy(x: offsetX, y: offsetY)
             context.cgContext.scaleBy(x: scale, y: scale)
 
+            // PDF sayfasını çiz
             firstPage.draw(with: .mediaBox, to: context.cgContext)
         }
 

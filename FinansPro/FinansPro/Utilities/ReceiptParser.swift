@@ -77,9 +77,15 @@ class ReceiptParser {
         return nil
     }
 
-    /// Toplam tutarı bul
+    /// Toplam tutarı bul - Geliştirilmiş algoritma
     private func extractTotalAmount(from lines: [String]) -> Double? {
-        var amounts: [Double] = []
+        var priorityAmounts: [Double] = []  // Yüksek öncelikli tutarlar
+        var allAmounts: [Double] = []       // Tüm tutarlar
+
+        // Debug için tüm metni yazdır
+        print("📄 FIŞ METNİ:")
+        print(lines.joined(separator: "\n"))
+        print(String(repeating: "=", count: 50))
 
         for line in lines {
             let lowercasedLine = line.lowercased()
@@ -91,63 +97,88 @@ class ReceiptParser {
                lowercasedLine.contains("para üstü") ||
                lowercasedLine.contains("para ustu") ||
                lowercasedLine.contains("change") ||
-               lowercasedLine.contains("verilen") {
+               lowercasedLine.contains("verilen") ||
+               lowercasedLine.contains("iade") ||
+               lowercasedLine.contains("refund") {
+                print("⏭️ Atlanan satır (nakit/para üstü): \(line)")
                 continue  // Bu satırı atla
             }
 
-            // "TOPLAM", "TOTAL", "ÖDENECEK", "TUTAR" gibi kelimeleri ara
-            if lowercasedLine.contains("toplam") ||
-               lowercasedLine.contains("total") ||
-               lowercasedLine.contains("ödenecek") ||
-               lowercasedLine.contains("odenecek") ||
-               lowercasedLine.contains("tutar") ||
-               lowercasedLine.contains("amount") {
+            // Yüksek öncelikli kelimeler (faturalarda yaygın)
+            let highPriorityKeywords = [
+                "toplam", "total", "ödenecek", "odenecek",
+                "genel toplam", "grand total", "net toplam",
+                "ödenecek tutar", "amount due", "tutar",
+                "fatura toplam", "invoice total", "bakiye",
+                "balance", "son toplam", "final total",
+                "ödeme tutarı", "payment amount", "tahsil edilen"
+            ]
 
-                // Bu satırdan tutarları çıkar
-                let lineAmounts = extractAmounts(from: line)
-                amounts.append(contentsOf: lineAmounts)
-            }
-        }
-
-        // Toplam bulunamadıysa, tüm satırlardan en büyük tutarı al (nakit/para üstü hariç)
-        if amounts.isEmpty {
-            for line in lines {
-                let lowercasedLine = line.lowercased()
-
-                // NAKİT, PARA ÜSTÜ içeren satırları atla
-                if lowercasedLine.contains("nakit") ||
-                   lowercasedLine.contains("nakıt") ||
-                   lowercasedLine.contains("cash") ||
-                   lowercasedLine.contains("para üstü") ||
-                   lowercasedLine.contains("para ustu") ||
-                   lowercasedLine.contains("change") ||
-                   lowercasedLine.contains("verilen") {
-                    continue
+            var isHighPriority = false
+            for keyword in highPriorityKeywords {
+                if lowercasedLine.contains(keyword) {
+                    isHighPriority = true
+                    break
                 }
+            }
 
-                let lineAmounts = extractAmounts(from: line)
-                amounts.append(contentsOf: lineAmounts)
+            let lineAmounts = extractAmounts(from: line)
+
+            if !lineAmounts.isEmpty {
+                if isHighPriority {
+                    print("⭐ Yüksek öncelikli: \(line) -> \(lineAmounts)")
+                    priorityAmounts.append(contentsOf: lineAmounts)
+                } else {
+                    allAmounts.append(contentsOf: lineAmounts)
+                }
             }
         }
 
-        // En büyük tutarı döndür (genelde toplam tutar en büyük olanıdır)
-        return amounts.max()
+        // Önce yüksek öncelikli tutarlara bak
+        if !priorityAmounts.isEmpty {
+            let maxAmount = priorityAmounts.max()!
+            print("✅ Bulunan tutar (öncelikli): \(maxAmount)")
+            return maxAmount
+        }
+
+        // Yoksa tüm tutarlardan en büyüğünü al
+        if !allAmounts.isEmpty {
+            // Çok küçük tutarları filtrele (< 1 TL)
+            let filtered = allAmounts.filter { $0 >= 1.0 }
+            if !filtered.isEmpty {
+                let maxAmount = filtered.max()!
+                print("✅ Bulunan tutar (genel): \(maxAmount)")
+                return maxAmount
+            }
+        }
+
+        print("❌ Tutar bulunamadı!")
+        return nil
     }
 
-    /// Satırdan sayısal tutarları çıkar
+    /// Satırdan sayısal tutarları çıkar - Geliştirilmiş
     private func extractAmounts(from text: String) -> [Double] {
         var amounts: [Double] = []
 
-        // Türk Lirası formatları:
-        // 1.234,56 TL
-        // 1234,56
-        // 42.50
-        // 42,50
+        // Çoklu para birimi formatları:
+        // Türk formatı: 1.234,56 TL, 1234,56 ₺
+        // Uluslararası: 42.50, $42.50, €42.50
+        // Boşluklu: 1 234,56 veya 1 234.56
 
         let patterns = [
-            #"(\d{1,3}(?:\.\d{3})*,\d{2})"#,  // 1.234,56
-            #"(\d+,\d{2})"#,                    // 1234,56
-            #"(\d+\.\d{2})"#                    // 42.50
+            // Türk formatı: 1.234,56 veya 1234,56
+            #"(\d{1,3}(?:\.\d{3})+,\d{2})"#,
+            #"(\d+,\d{2})"#,
+
+            // Uluslararası format: 1,234.56 veya 1234.56
+            #"(\d{1,3}(?:,\d{3})+\.\d{2})"#,
+            #"(\d+\.\d{2})"#,
+
+            // Boşluklu format: 1 234,56 veya 1 234.56
+            #"(\d{1,3}(?:\s\d{3})+[,.]\d{2})"#,
+
+            // Tam sayılar (en son kontrol et)
+            #"(\d{2,})"#
         ]
 
         for pattern in patterns {
@@ -159,9 +190,29 @@ class ReceiptParser {
                     if let range = Range(match.range(at: 1), in: text) {
                         var amountStr = String(text[range])
 
-                        // Türk formatını standart formata çevir
-                        amountStr = amountStr.replacingOccurrences(of: ".", with: "")
-                        amountStr = amountStr.replacingOccurrences(of: ",", with: ".")
+                        // Farklı formatları normalize et
+                        if amountStr.contains(",") && amountStr.contains(".") {
+                            // 1.234,56 formatı (Türk)
+                            amountStr = amountStr.replacingOccurrences(of: ".", with: "")
+                            amountStr = amountStr.replacingOccurrences(of: ",", with: ".")
+                        } else if amountStr.contains(",") {
+                            // İki durum olabilir:
+                            // 1. 1234,56 (Türk - virgül ondalık ayırıcı)
+                            // 2. 1,234.56 (Uluslararası - virgül binlik ayırıcı)
+                            let commaIndex = amountStr.firstIndex(of: ",")!
+                            let afterComma = amountStr[amountStr.index(after: commaIndex)...]
+
+                            if afterComma.count == 2 {
+                                // Türk formatı: 1234,56
+                                amountStr = amountStr.replacingOccurrences(of: ",", with: ".")
+                            } else {
+                                // Uluslararası: 1,234
+                                amountStr = amountStr.replacingOccurrences(of: ",", with: "")
+                            }
+                        }
+
+                        // Boşlukları kaldır
+                        amountStr = amountStr.replacingOccurrences(of: " ", with: "")
 
                         if let amount = Double(amountStr), amount > 0 {
                             amounts.append(amount)
