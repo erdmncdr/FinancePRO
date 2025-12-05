@@ -359,30 +359,64 @@ struct ReceiptScannerView: View {
         HapticManager.shared.impact(style: .medium)
 
         DispatchQueue.global(qos: .userInitiated).async {
-            let result = PDFReceiptProcessor.shared.extractText(from: url)
+            // Önce thumbnail oluştur (önizleme için)
+            var thumbnail: UIImage?
+            if let pdfThumbnail = PDFReceiptProcessor.shared.generateThumbnail(from: url) {
+                thumbnail = pdfThumbnail
+                DispatchQueue.main.async {
+                    self.selectedImage = pdfThumbnail
+                }
+            }
 
-            DispatchQueue.main.async {
-                isProcessing = false
+            // Metin çıkarma
+            let textResult = PDFReceiptProcessor.shared.extractText(from: url)
 
-                switch result {
-                case .success(let text):
-                    // PDF'den metin başarıyla çıkarıldı
-                    let receipt = ReceiptParser.shared.parse(text: text)
+            var finalText = ""
 
-                    // Thumbnail oluştur
-                    if let thumbnail = PDFReceiptProcessor.shared.generateThumbnail(from: url) {
-                        selectedImage = thumbnail
+            switch textResult {
+            case .success(let text):
+                print("✅ PDF'den metin çıkarıldı: \(text.prefix(100))...")
+                finalText = text
+
+            case .failure(let error):
+                print("⚠️ PDF'den metin çıkarılamadı: \(error.localizedDescription)")
+
+                // Metin yoksa, thumbnail'ı OCR ile oku
+                if let thumbnail = thumbnail {
+                    print("🔍 OCR ile okuma başlatılıyor...")
+                    let semaphore = DispatchSemaphore(value: 0)
+
+                    ReceiptScannerManager.shared.recognizeText(from: thumbnail) { ocrResult in
+                        switch ocrResult {
+                        case .success(let ocrText):
+                            print("✅ OCR başarılı: \(ocrText.prefix(100))...")
+                            finalText = ocrText
+                        case .failure(let ocrError):
+                            print("❌ OCR başarısız: \(ocrError.localizedDescription)")
+                        }
+                        semaphore.signal()
                     }
 
-                    parsedReceipt = receipt
-                    HapticManager.shared.success()
-                    showingReview = true
-
-                case .failure(let error):
-                    errorMessage = error.localizedDescription
-                    showingError = true
-                    HapticManager.shared.error()
+                    semaphore.wait()
                 }
+            }
+
+            DispatchQueue.main.async {
+                self.isProcessing = false
+
+                if finalText.isEmpty {
+                    self.errorMessage = "PDF'den ve OCR'dan metin çıkarılamadı. Lütfen daha net bir PDF deneyin."
+                    self.showingError = true
+                    HapticManager.shared.error()
+                    return
+                }
+
+                // Metni parse et
+                let receipt = ReceiptParser.shared.parse(text: finalText)
+
+                self.parsedReceipt = receipt
+                HapticManager.shared.success()
+                self.showingReview = true
             }
         }
     }
