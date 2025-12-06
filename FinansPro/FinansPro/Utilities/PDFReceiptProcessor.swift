@@ -104,11 +104,9 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        // Sadece horizontal mirror uygula
-        let mirrored = mirrorThumbnail(thumbnail)
-
-        print("✅ Thumbnail oluşturuldu -> Mirror uygulandı: \(size)")
-        return mirrored
+        // HİÇBİR TRANSFORMATION YOK - Ham PDF görüntüsü
+        print("✅ Thumbnail oluşturuldu -> Transformation YOK (ham görüntü): \(size)")
+        return thumbnail
     }
 
     /// Thumbnail'ı horizontal flip (mirror) yapar
@@ -198,11 +196,9 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        // Sadece horizontal mirror uygula
-        let mirrored = mirrorThumbnail(thumbnail)
-
-        print("✅ Thumbnail oluşturuldu -> Mirror uygulandı: \(size)")
-        return mirrored
+        // HİÇBİR TRANSFORMATION YOK - Ham PDF görüntüsü
+        print("✅ Thumbnail oluşturuldu -> Transformation YOK (ham görüntü): \(size)")
+        return thumbnail
     }
 }
 
