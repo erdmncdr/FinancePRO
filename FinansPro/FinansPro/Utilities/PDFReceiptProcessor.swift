@@ -85,7 +85,11 @@ class PDFReceiptProcessor {
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // BASİTLEŞTİRİLMİŞ: Sadece ölçekleme ve merkezleme
+            // Y-FLİP ZORUNLU: PDF koordinat sistemi (alt-sol) -> UIKit (üst-sol)
+            ctx.translateBy(x: 0, y: size.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+
+            // Ölçekleme ve merkezleme
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
@@ -98,16 +102,15 @@ class PDFReceiptProcessor {
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // PDF'yi doğrudan çiz (koordinat dönüşümü yok)
+            // PDF'yi çiz
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
         }
 
-        // SADECE HORIZONTAL MIRROR (ayna efekti düzeltme)
-        let mirrored = mirrorThumbnail(thumbnail)
-        print("✅ Thumbnail oluşturuldu -> Horizontal Mirror uygulandı: \(size)")
-        return mirrored
+        // Sadece Y-flip uygulandı (koordinat sistemi düzeltmesi)
+        print("✅ Thumbnail oluşturuldu -> Y-flip uygulandı: \(size)")
+        return thumbnail
     }
 
     /// Thumbnail'ı horizontal flip (mirror) yapar
@@ -178,7 +181,11 @@ class PDFReceiptProcessor {
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // BASİTLEŞTİRİLMİŞ: Sadece ölçekleme ve merkezleme
+            // Y-FLİP ZORUNLU: PDF koordinat sistemi (alt-sol) -> UIKit (üst-sol)
+            ctx.translateBy(x: 0, y: size.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+
+            // Ölçekleme ve merkezleme
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
@@ -191,16 +198,15 @@ class PDFReceiptProcessor {
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // PDF'yi doğrudan çiz (koordinat dönüşümü yok)
+            // PDF'yi çiz
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
         }
 
-        // SADECE HORIZONTAL MIRROR (ayna efekti düzeltme)
-        let mirrored = mirrorThumbnail(thumbnail)
-        print("✅ Thumbnail oluşturuldu -> Horizontal Mirror uygulandı: \(size)")
-        return mirrored
+        // Sadece Y-flip uygulandı (koordinat sistemi düzeltmesi)
+        print("✅ Thumbnail oluşturuldu -> Y-flip uygulandı: \(size)")
+        return thumbnail
     }
 }
 
