@@ -62,7 +62,7 @@ class PDFReceiptProcessor {
         return .success(fullText)
     }
 
-    /// PDF'in ilk sayfasını thumbnail olarak çıkarır (DÜZELTİLMİŞ - Y flip + rotation)
+    /// PDF'in ilk sayfasını thumbnail olarak çıkarır (BASİTLEŞTİRİLMİŞ - Sadece mirror)
     func generateThumbnail(from pdfURL: URL, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(url: pdfURL),
               let firstPage = pdfDocument.page(at: 0) else {
@@ -85,17 +85,15 @@ class PDFReceiptProcessor {
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // PDF koordinat sistemini UIKit'e çevir
-            // 1. Y eksenini flip et (PDF alt-sol başlar, UIKit üst-sol)
+            // Y-FLİP ZORUNLU: PDF koordinat sistemi (alt-sol) -> UIKit (üst-sol)
             ctx.translateBy(x: 0, y: size.height)
             ctx.scaleBy(x: 1.0, y: -1.0)
 
-            // 2. Ölçekleme hesapla
+            // Ölçekleme ve merkezleme
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
 
-            // 3. Merkezleme
             let scaledWidth = pageRect.width * scale
             let scaledHeight = pageRect.height * scale
             let offsetX = (size.width - scaledWidth) / 2
@@ -104,18 +102,16 @@ class PDFReceiptProcessor {
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // 4. PDF'yi çiz
+            // PDF'yi çiz
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
         }
 
-        // ZORUNLU: 180° döndür + Mirror flip
+        // HER ZAMAN 180° rotasyon uygula (user feedback)
         let rotated = rotateThumbnail(thumbnail, by: 180)
-        let mirrored = mirrorThumbnail(rotated)
-
-        print("✅ Thumbnail oluşturuldu -> 180° + Mirror uygulandı: \(size)")
-        return mirrored
+        print("✅ Thumbnail -> Y-flip + 180° rotation uygulandı")
+        return rotated
     }
 
     /// Thumbnail'ı horizontal flip (mirror) yapar
@@ -163,7 +159,7 @@ class PDFReceiptProcessor {
         }
     }
 
-    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır (DÜZELTİLMİŞ - Y flip + rotation)
+    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır (BASİTLEŞTİRİLMİŞ - Sadece mirror)
     func generateThumbnail(from pdfData: Data, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(data: pdfData),
               let firstPage = pdfDocument.page(at: 0) else {
@@ -186,17 +182,15 @@ class PDFReceiptProcessor {
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // PDF koordinat sistemini UIKit'e çevir
-            // 1. Y eksenini flip et (PDF alt-sol başlar, UIKit üst-sol)
+            // Y-FLİP ZORUNLU: PDF koordinat sistemi (alt-sol) -> UIKit (üst-sol)
             ctx.translateBy(x: 0, y: size.height)
             ctx.scaleBy(x: 1.0, y: -1.0)
 
-            // 2. Ölçekleme hesapla
+            // Ölçekleme ve merkezleme
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
 
-            // 3. Merkezleme
             let scaledWidth = pageRect.width * scale
             let scaledHeight = pageRect.height * scale
             let offsetX = (size.width - scaledWidth) / 2
@@ -205,18 +199,16 @@ class PDFReceiptProcessor {
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // 4. PDF'yi çiz
+            // PDF'yi çiz
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
         }
 
-        // ZORUNLU: 180° döndür + Mirror flip
+        // HER ZAMAN 180° rotasyon uygula (user feedback)
         let rotated = rotateThumbnail(thumbnail, by: 180)
-        let mirrored = mirrorThumbnail(rotated)
-
-        print("✅ Thumbnail oluşturuldu -> 180° + Mirror uygulandı: \(size)")
-        return mirrored
+        print("✅ Thumbnail -> Y-flip + 180° rotation uygulandı")
+        return rotated
     }
 }
 
