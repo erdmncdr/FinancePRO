@@ -106,8 +106,11 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        print("✅ Thumbnail oluşturuldu: \(size)")
-        return thumbnail
+        // TEST: 180° döndür
+        let rotatedThumbnail = rotateThumbnail(thumbnail, by: 180)
+
+        print("✅ Thumbnail oluşturuldu ve 180° döndürüldü: \(size)")
+        return rotatedThumbnail
     }
 
     /// Thumbnail'ı belirtilen derece kadar döndürür
@@ -183,8 +186,11 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        print("✅ Thumbnail oluşturuldu: \(size)")
-        return thumbnail
+        // TEST: 180° döndür
+        let rotatedThumbnail = rotateThumbnail(thumbnail, by: 180)
+
+        print("✅ Thumbnail oluşturuldu ve 180° döndürüldü: \(size)")
+        return rotatedThumbnail
     }
 }
 
