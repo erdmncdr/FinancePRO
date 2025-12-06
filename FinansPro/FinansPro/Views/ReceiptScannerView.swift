@@ -72,6 +72,52 @@ struct ReceiptScannerView: View {
                                 .shadow(color: .black.opacity(0.2), radius: 10)
                                 .padding(.horizontal)
 
+                            // Döndürme ve Aynalama Kontrolleri
+                            HStack(spacing: 12) {
+                                Button(action: rotateImage90) {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "rotate.right")
+                                            .font(.system(size: 20))
+                                        Text("Döndür")
+                                            .font(.caption2)
+                                    }
+                                    .foregroundColor(.blue)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(.ultraThinMaterial)
+                                    .cornerRadius(12)
+                                }
+
+                                Button(action: flipHorizontal) {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "arrow.left.and.right")
+                                            .font(.system(size: 20))
+                                        Text("Yatay")
+                                            .font(.caption2)
+                                    }
+                                    .foregroundColor(.blue)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(.ultraThinMaterial)
+                                    .cornerRadius(12)
+                                }
+
+                                Button(action: flipVertical) {
+                                    VStack(spacing: 4) {
+                                        Image(systemName: "arrow.up.and.down")
+                                            .font(.system(size: 20))
+                                        Text("Dikey")
+                                            .font(.caption2)
+                                    }
+                                    .foregroundColor(.blue)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(.ultraThinMaterial)
+                                    .cornerRadius(12)
+                                }
+                            }
+                            .padding(.horizontal)
+
                             if isProcessing {
                                 VStack(spacing: 12) {
                                     ProgressView()
@@ -420,6 +466,26 @@ struct ReceiptScannerView: View {
             }
         }
     }
+
+    // MARK: - Image Transformation Functions
+
+    private func rotateImage90() {
+        guard let image = selectedImage else { return }
+        selectedImage = image.rotate90Clockwise()
+        HapticManager.shared.impact(style: .light)
+    }
+
+    private func flipHorizontal() {
+        guard let image = selectedImage else { return }
+        selectedImage = image.flipHorizontally()
+        HapticManager.shared.impact(style: .light)
+    }
+
+    private func flipVertical() {
+        guard let image = selectedImage else { return }
+        selectedImage = image.flipVertically()
+        HapticManager.shared.impact(style: .light)
+    }
 }
 
 // MARK: - Image Picker
@@ -590,6 +656,60 @@ extension UIImage {
         guard let newCGImage = context.makeImage() else { return self }
 
         return UIImage(cgImage: newCGImage)
+    }
+
+    /// Görseli 90° saat yönünde döndürür
+    func rotate90Clockwise() -> UIImage {
+        guard let cgImage = cgImage else { return self }
+
+        let newSize = CGSize(width: size.height, height: size.width)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+
+        return renderer.image { context in
+            let ctx = context.cgContext
+
+            // Merkeze taşı
+            ctx.translateBy(x: newSize.width / 2, y: newSize.height / 2)
+
+            // 90° saat yönünde döndür
+            ctx.rotate(by: .pi / 2)
+
+            // Geri taşı ve çiz
+            ctx.translateBy(x: -size.width / 2, y: -size.height / 2)
+            ctx.draw(cgImage, in: CGRect(origin: .zero, size: size))
+        }
+    }
+
+    /// Görseli yatay olarak aynalar (horizontal flip)
+    func flipHorizontally() -> UIImage {
+        guard let cgImage = cgImage else { return self }
+
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            let ctx = context.cgContext
+
+            // X ekseninde flip
+            ctx.translateBy(x: size.width, y: 0)
+            ctx.scaleBy(x: -1.0, y: 1.0)
+
+            ctx.draw(cgImage, in: CGRect(origin: .zero, size: size))
+        }
+    }
+
+    /// Görseli dikey olarak aynalar (vertical flip)
+    func flipVertically() -> UIImage {
+        guard let cgImage = cgImage else { return self }
+
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            let ctx = context.cgContext
+
+            // Y ekseninde flip
+            ctx.translateBy(x: 0, y: size.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+
+            ctx.draw(cgImage, in: CGRect(origin: .zero, size: size))
+        }
     }
 }
 
