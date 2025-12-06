@@ -62,7 +62,7 @@ class PDFReceiptProcessor {
         return .success(fullText)
     }
 
-    /// PDF'in ilk sayfasını thumbnail olarak çıkarır (rotasyon düzeltmeli v3 - basit)
+    /// PDF'in ilk sayfasını thumbnail olarak çıkarır (rotasyon düzeltmeli v4 - doğru koordinat)
     func generateThumbnail(from pdfURL: URL, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(url: pdfURL),
               let firstPage = pdfDocument.page(at: 0) else {
@@ -75,21 +75,17 @@ class PDFReceiptProcessor {
         print("🔄 PDF Rotation: \(rotation)°")
         print("📐 PDF Page Rect: \(pageRect)")
 
-        // Basit render - rotation'sız
+        // Render boyutu
         let renderer = UIGraphicsImageRenderer(size: size)
 
-        var thumbnail = renderer.image { context in
+        let thumbnail = renderer.image { context in
             UIColor.white.set()
             context.fill(CGRect(origin: .zero, size: size))
 
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // PDF koordinat sistemi (ters)
-            ctx.translateBy(x: 0, y: size.height)
-            ctx.scaleBy(x: 1.0, y: -1.0)
-
-            // Ölçekleme
+            // Ölçekleme hesapla
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
@@ -100,18 +96,14 @@ class PDFReceiptProcessor {
             let offsetX = (size.width - scaledWidth) / 2
             let offsetY = (size.height - scaledHeight) / 2
 
+            // Merkeze taşı ve ölçekle
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // PDF'yi çiz
+            // PDF'yi çiz - Y flip YOK (bu sorundu!)
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
-        }
-
-        // Eğer rotation varsa, UIImage'i döndür
-        if rotation != 0 {
-            thumbnail = rotateThumbnail(thumbnail, by: rotation)
         }
 
         print("✅ Thumbnail oluşturuldu: \(size)")
@@ -147,7 +139,7 @@ class PDFReceiptProcessor {
         }
     }
 
-    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır (rotasyon düzeltmeli v3 - basit)
+    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır (rotasyon düzeltmeli v4 - doğru koordinat)
     func generateThumbnail(from pdfData: Data, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(data: pdfData),
               let firstPage = pdfDocument.page(at: 0) else {
@@ -160,21 +152,17 @@ class PDFReceiptProcessor {
         print("🔄 PDF Rotation: \(rotation)°")
         print("📐 PDF Page Rect: \(pageRect)")
 
-        // Basit render - rotation'sız
+        // Render boyutu
         let renderer = UIGraphicsImageRenderer(size: size)
 
-        var thumbnail = renderer.image { context in
+        let thumbnail = renderer.image { context in
             UIColor.white.set()
             context.fill(CGRect(origin: .zero, size: size))
 
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // PDF koordinat sistemi (ters)
-            ctx.translateBy(x: 0, y: size.height)
-            ctx.scaleBy(x: 1.0, y: -1.0)
-
-            // Ölçekleme
+            // Ölçekleme hesapla
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
@@ -185,18 +173,14 @@ class PDFReceiptProcessor {
             let offsetX = (size.width - scaledWidth) / 2
             let offsetY = (size.height - scaledHeight) / 2
 
+            // Merkeze taşı ve ölçekle
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // PDF'yi çiz
+            // PDF'yi çiz - Y flip YOK (bu sorundu!)
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
-        }
-
-        // Eğer rotation varsa, UIImage'i döndür
-        if rotation != 0 {
-            thumbnail = rotateThumbnail(thumbnail, by: rotation)
         }
 
         print("✅ Thumbnail oluşturuldu: \(size)")
