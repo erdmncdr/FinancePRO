@@ -110,8 +110,28 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        print("✅ Thumbnail oluşturuldu (Y-flip uygulandı): \(size)")
-        return thumbnail
+        // ZORUNLU: 180° döndür + Mirror flip
+        let rotated = rotateThumbnail(thumbnail, by: 180)
+        let mirrored = mirrorThumbnail(rotated)
+
+        print("✅ Thumbnail oluşturuldu -> 180° + Mirror uygulandı: \(size)")
+        return mirrored
+    }
+
+    /// Thumbnail'ı horizontal flip (mirror) yapar
+    private func mirrorThumbnail(_ image: UIImage) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: image.size)
+        return renderer.image { context in
+            let ctx = context.cgContext
+
+            // X ekseninde flip (mirror)
+            ctx.translateBy(x: image.size.width, y: 0)
+            ctx.scaleBy(x: -1.0, y: 1.0)
+
+            if let cgImage = image.cgImage {
+                ctx.draw(cgImage, in: CGRect(origin: .zero, size: image.size))
+            }
+        }
     }
 
     /// Thumbnail'ı belirtilen derece kadar döndürür
@@ -191,8 +211,12 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        print("✅ Thumbnail oluşturuldu (Y-flip uygulandı): \(size)")
-        return thumbnail
+        // ZORUNLU: 180° döndür + Mirror flip
+        let rotated = rotateThumbnail(thumbnail, by: 180)
+        let mirrored = mirrorThumbnail(rotated)
+
+        print("✅ Thumbnail oluşturuldu -> 180° + Mirror uygulandı: \(size)")
+        return mirrored
     }
 }
 
