@@ -108,9 +108,10 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        // Sadece Y-flip uygulandı (koordinat sistemi düzeltmesi)
-        print("✅ Thumbnail oluşturuldu -> Y-flip uygulandı: \(size)")
-        return thumbnail
+        // HER ZAMAN 180° rotasyon uygula (user feedback)
+        let rotated = rotateThumbnail(thumbnail, by: 180)
+        print("✅ Thumbnail -> Y-flip + 180° rotation uygulandı")
+        return rotated
     }
 
     /// Thumbnail'ı horizontal flip (mirror) yapar
@@ -204,9 +205,10 @@ class PDFReceiptProcessor {
             ctx.restoreGState()
         }
 
-        // Sadece Y-flip uygulandı (koordinat sistemi düzeltmesi)
-        print("✅ Thumbnail oluşturuldu -> Y-flip uygulandı: \(size)")
-        return thumbnail
+        // HER ZAMAN 180° rotasyon uygula (user feedback)
+        let rotated = rotateThumbnail(thumbnail, by: 180)
+        print("✅ Thumbnail -> Y-flip + 180° rotation uygulandı")
+        return rotated
     }
 }
 
