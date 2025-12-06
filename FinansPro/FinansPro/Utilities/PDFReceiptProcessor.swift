@@ -62,7 +62,7 @@ class PDFReceiptProcessor {
         return .success(fullText)
     }
 
-    /// PDF'in ilk sayfasını thumbnail olarak çıkarır (rotasyon düzeltmeli v4 - doğru koordinat)
+    /// PDF'in ilk sayfasını thumbnail olarak çıkarır (DÜZELTİLMİŞ - Y flip + rotation)
     func generateThumbnail(from pdfURL: URL, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(url: pdfURL),
               let firstPage = pdfDocument.page(at: 0) else {
@@ -85,32 +85,33 @@ class PDFReceiptProcessor {
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // Ölçekleme hesapla
+            // PDF koordinat sistemini UIKit'e çevir
+            // 1. Y eksenini flip et (PDF alt-sol başlar, UIKit üst-sol)
+            ctx.translateBy(x: 0, y: size.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+
+            // 2. Ölçekleme hesapla
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
 
-            // Merkezleme
+            // 3. Merkezleme
             let scaledWidth = pageRect.width * scale
             let scaledHeight = pageRect.height * scale
             let offsetX = (size.width - scaledWidth) / 2
             let offsetY = (size.height - scaledHeight) / 2
 
-            // Merkeze taşı ve ölçekle
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // PDF'yi çiz - Y flip YOK (bu sorundu!)
+            // 4. PDF'yi çiz
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
         }
 
-        // TEST: 180° döndür
-        let rotatedThumbnail = rotateThumbnail(thumbnail, by: 180)
-
-        print("✅ Thumbnail oluşturuldu ve 180° döndürüldü: \(size)")
-        return rotatedThumbnail
+        print("✅ Thumbnail oluşturuldu (Y-flip uygulandı): \(size)")
+        return thumbnail
     }
 
     /// Thumbnail'ı belirtilen derece kadar döndürür
@@ -142,7 +143,7 @@ class PDFReceiptProcessor {
         }
     }
 
-    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır (rotasyon düzeltmeli v4 - doğru koordinat)
+    /// PDF'in ilk sayfasını Data'dan thumbnail olarak çıkarır (DÜZELTİLMİŞ - Y flip + rotation)
     func generateThumbnail(from pdfData: Data, size: CGSize = CGSize(width: 300, height: 400)) -> UIImage? {
         guard let pdfDocument = PDFDocument(data: pdfData),
               let firstPage = pdfDocument.page(at: 0) else {
@@ -165,32 +166,33 @@ class PDFReceiptProcessor {
             let ctx = context.cgContext
             ctx.saveGState()
 
-            // Ölçekleme hesapla
+            // PDF koordinat sistemini UIKit'e çevir
+            // 1. Y eksenini flip et (PDF alt-sol başlar, UIKit üst-sol)
+            ctx.translateBy(x: 0, y: size.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+
+            // 2. Ölçekleme hesapla
             let scaleX = size.width / pageRect.width
             let scaleY = size.height / pageRect.height
             let scale = min(scaleX, scaleY)
 
-            // Merkezleme
+            // 3. Merkezleme
             let scaledWidth = pageRect.width * scale
             let scaledHeight = pageRect.height * scale
             let offsetX = (size.width - scaledWidth) / 2
             let offsetY = (size.height - scaledHeight) / 2
 
-            // Merkeze taşı ve ölçekle
             ctx.translateBy(x: offsetX, y: offsetY)
             ctx.scaleBy(x: scale, y: scale)
 
-            // PDF'yi çiz - Y flip YOK (bu sorundu!)
+            // 4. PDF'yi çiz
             firstPage.draw(with: .mediaBox, to: ctx)
 
             ctx.restoreGState()
         }
 
-        // TEST: 180° döndür
-        let rotatedThumbnail = rotateThumbnail(thumbnail, by: 180)
-
-        print("✅ Thumbnail oluşturuldu ve 180° döndürüldü: \(size)")
-        return rotatedThumbnail
+        print("✅ Thumbnail oluşturuldu (Y-flip uygulandı): \(size)")
+        return thumbnail
     }
 }
 
